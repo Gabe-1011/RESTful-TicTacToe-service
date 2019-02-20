@@ -1,10 +1,146 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<link rel="stylesheet" type="text/css" href="./index.css" />
+	<link rel="stylesheet" type="text/css" href="stylesheets/index.css" />
+	<style>
+	td
+	{
+    		width:50px;
+    		height:50px;
+    		border: solid 1px black;
+    		text-align:center;
+    		font-size:20pt;
+	}
+
+	td:hover
+	{
+    		background-color: #dbdbdb;
+    		cursor:pointer;
+	}
+	</style>
+	<script type="text/javascript">
+		var winners = new Array();
+		var player1Selections = new Array();
+		var player2Selections = new Array();
+		var numberOfPlayers = 2;
+		var currentPlayer = 0;
+		var move = 0;
+		var points1 = 0;    // player 1 points
+		var points2 = 0;    // player 2 points
+		var size = 3;
+		
+		function drawBoard(){
+			var parent = document.getElementById("game");
+    			var counter = 1;
+			while (parent.hasChildNodes()) {
+        			parent.removeChild(parent.firstChild);
+    			}
+			for (var i = 0; i < 3; i++){
+				var row = document.createElement("tr");
+				for(var x = 0; x < size; x++){
+					var col = document.createElement("td");
+					col.id = counter;
+            				col.innerHTML = counter;
+
+					var handler = function(e) {
+						if (currentPlayer == 0) {
+                    					this.innerHTML = "X";
+                    					player1Selections.push(parseInt(this.id));
+                    					player1Selections.sort(function(a, b) { return a - b });
+                				}
+						else {
+                    					this.innerHTML = "O";
+                    					player2Selections.push(parseInt(this.id));
+                    					player2Selections.sort(function(a, b) { return a - b });
+                				}
+
+						move++;
+                				var isWin = checkWinner();
+
+						if (isWin){
+							if(currentPlayer == 0)
+                        					points1++;
+                    					else
+                        					points2++;
+
+                    					document.getElementById("player1").innerHTML = points1;
+                    					document.getElementById("player2").innerHTML = points2;
+
+                    					reset();
+                    					drawBoard();
+						}
+						else {
+							if (currentPlayer == 0)
+                        					currentPlayer = 1;
+                    					else
+                        					currentPlayer = 0;
+                    					this.removeEventListener('click', arguments.callee);
+						}
+					};
+					col.addEventListener('click', handler);
+
+            				row.appendChild(col);
+					counter++;
+				}
+				
+				parent.appendChild(row);
+			}
+
+		}
+		function reset(){
+    			currentPlayer = 0;
+    			player1Selections = new Array();
+    			player2Selections = new Array();
+		}
+		function checkWinner(){
+			var win = false;
+			var json = '';
+    			var playerSelections = new Array();
+
+    			if (currentPlayer == 0)
+        			playerSelections = player1Selections;
+    			else
+				playerSelections = player2Selections;
+
+			var xhr = new XMLHttpRequest();
+			var url = "/ttt/play";
+			xhr.open("POST", url, true);
+			xhr.setRequestHeader("Content-Type", "application/json");
+			xhr.onreadystatechange = function () {
+    				if (xhr.readyState === 4 && xhr.status === 200) {
+        				json = JSON.parse(xhr.responseText);
+    				}
+			};
+			var data = JSON.stringify({grid: playerSelections });
+			xhr.send(data);
+			return json;
+		}
+		window.onload = drawBoard;
+
+        </script>
 </head>
 <body>
-	<script></script>
 	<h1>Hello {{name}}, {{date}}</h1>
+	
+	<div style="text-align:center;margin:0 auto;width:50%;padding-top:20px;">
+	<br/>
+		<div style="float:left;">
+			Player 1
+
+			<div style="font-size:30pt;" id="player1">
+				0
+			</div>
+		</div>
+
+		<table id="game" style="float:left;margin-left:20px;">
+		</table>
+
+		<div style="float:left;margin-left:20px;">
+			Player 2
+			<div id="player2" style="font-size:30pt;">0</div>
+		</div>
+
+		<div class="clear"></div>
+	</div>
 </body>
 </html>
