@@ -13,7 +13,7 @@ var LocalStrategy = require('passport-local').Strategy;
 
 // configuration ===============================================================
 mongoose.Promise = global.Promise
-mongoose.connect('mongodb://localhost:27017/myapp', {useNewUrlParser: true}); // connect to our database
+mongoose.connect('mongodb://localhost:27017/ttt'); // connect to our database
 
 // required for passport
 //app.use(session({ secret: 'tictactoetictactoe' })); // session secret
@@ -63,9 +63,27 @@ app.use(express.static(path.join(__dirname + '/public')));
 //});
 
 // create the login get and post routes
+
+app.use('/', indexRouter);
+// Passport config
+var Account = require('./models/user');
+passport.use(new LocalStrategy(Account.authenticate()));
+passport.serializeUser(Account.serializeUser());
+passport.deserializeUser(Account.deserializeUser()); 
 app.get('/adduser', (req, res) => {
   res.render('adduser.html');
 })
+app.post('/adduser', (req, res) => {
+  Account.register(new Account({ username: req.body.username, email: req.body.email}), req.body.password, function(err, account){
+  	if(err){
+          return res.render('adduser');
+        }
+
+        passport.authenticate('local')(req, res, function () {
+          res.redirect('/ttt');
+        });
+   });
+});
 app.get('/login', (req, res) => {
   console.log('Inside GET /login callback function')
   console.log(req.sessionID)
