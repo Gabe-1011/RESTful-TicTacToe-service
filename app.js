@@ -5,6 +5,21 @@ var cookieParser = require('cookie-parser');
 //var bodyParser = require('body-parser')
 var logger = require('morgan');
 var engines = require('consolidate');
+var mongoose = require('mongoose');
+var passport = require('passport');
+var session = require('express-session');
+var flash = require('connect-flash');
+var LocalStrategy = require('passport-local').Strategy;
+
+// configuration ===============================================================
+mongoose.Promise = global.Promise
+mongoose.connect('mongodb://localhost:27017/myapp', {useNewUrlParser: true}); // connect to our database
+
+// required for passport
+//app.use(session({ secret: 'tictactoetictactoe' })); // session secret
+//app.use(passport.initialize());
+//app.use(passport.session()); // persistent login sessions
+//app.use(flash()); // use connect-flash for flash messages stored in session
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
@@ -17,6 +32,20 @@ app.set('views', path.join(__dirname, 'views'));
 app.engine('html', engines.mustache);
 app.set('view engine', 'html');
 
+app.use(session({
+  cookie: { maxAge: 60000 },
+  secret: 'codeworkrsecret',
+  saveUninitialized: false,
+  resave: false
+}));
+app.use(passport.initialize())
+app.use(passport.session())
+app.use(flash())
+app.use((req, res, next) => {
+  res.locals.success_mesages = req.flash('success')
+  res.locals.error_messages = req.flash('error')
+  next()
+})
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -32,6 +61,22 @@ app.use(express.static(path.join(__dirname + '/public')));
 //app.get('/ttt', function(req, res) {
   //res.sendFile(path.join(__dirname, 'client',  'build', 'index.html'));
 //});
+
+// create the login get and post routes
+app.get('/adduser', (req, res) => {
+  res.render('adduser.html');
+})
+app.get('/login', (req, res) => {
+  console.log('Inside GET /login callback function')
+  console.log(req.sessionID)
+  res.send(`You got the login page!\n`)
+})
+
+app.post('/login', (req, res) => {
+  console.log('Inside POST /login callback function')
+  console.log(req.body)
+  res.send(`You posted to the login page!\n`)
+})
 
 app.post('/ttt', (req, res, next) => {
   var date = new Date();
