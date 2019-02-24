@@ -1,3 +1,9 @@
 body{
 	background-color: #FFDFD3
 }
+
+.logoutLblPos{
+   position:fixed;
+   right:10px;
+   top:5px;
+}

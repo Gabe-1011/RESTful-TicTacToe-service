@@ -10,6 +10,8 @@ var passport = require('passport');
 var session = require('express-session');
 var flash = require('connect-flash');
 var LocalStrategy = require('passport-local').Strategy;
+var nodemailer = require('nodemailer')
+var rand = require('generate-key')
 
 // configuration ===============================================================
 mongoose.Promise = global.Promise
@@ -74,28 +76,79 @@ app.get('/adduser', (req, res) => {
   res.render('adduser.html');
 })
 app.post('/adduser', (req, res) => {
-  Account.register(new Account({ username: req.body.username, email: req.body.email}), req.body.password, function(err, account){
+  var key = rand.generateKey();
+  Account.register(new Account({ username: req.body.username, email: req.body.email, key: key}), req.body.password, function(err, account){
   	if(err){
           return res.render('adduser');
         }
-
-        passport.authenticate('local')(req, res, function () {
-          res.redirect('/ttt');
+        var transporter = nodemailer.createTransport({
+          service: 'Gmail',
+          auth: {
+            user: 'jpurugganan@cs.stonybrook.edu',
+            pass: 'Psp-1011'
+          }
         });
+        //var key = rand.generateKey();
+        var mailOptions = {
+          from: 'jpurugganan@cs.stonybrook.edu',
+          to: req.body.email,
+          subject: 'TicTacToe Email Verification Key',
+          text: key
+        }
+        transporter.sendMail(mailOptions, function(error, info){
+          if(error){
+            console.log(error);
+          }
+          else{
+            console.log('Message sent: ' + info.response);
+          }
+        });
+
+        res.redirect('/verify')
+
+        //passport.authenticate('local')(req, res, function () {
+          //res.redirect('/verify');
+        //});
    });
 });
+app.get('/verify', (req, res) => {
+  res.render('verify.html');
+});
+app.post('/verify', (req, res) => {
+  var email = req.body.email;
+  var key = req.body.key;
+  Account.findOne({email: email}, function(err, account){
+    if(account.key === key){
+      account.isVerified = true;
+      account.save(function(err) {
+        if(err)
+          console.log(err);
+      });
+      res.redirect('/login')
+    }
+    else
+      console.log(err);
+  });
+});
 app.get('/login', (req, res) => {
-  console.log('Inside GET /login callback function')
-  console.log(req.sessionID)
-  res.send(`You got the login page!\n`)
+  //console.log('Inside GET /login callback function')
+  //console.log(req.sessionID)
+  //res.send(`You got the login page!\n`)
+  res.render('login.html')
 })
 
 app.post('/login', (req, res) => {
   console.log('Inside POST /login callback function')
   console.log(req.body)
-  res.send(`You posted to the login page!\n`)
+  //res.send(`You posted to the login page!\n`)
+  passport.authenticate('local', { failureRedirect: '/login' })(req, res, function () {
+    res.redirect('/ttt')
+  });
 })
-
+app.post('/logout', (req, res) => {
+  req.logout();
+  res.redirect('/login');
+});
 app.post('/ttt', (req, res, next) => {
   var date = new Date();
   var name = req.body.name;
